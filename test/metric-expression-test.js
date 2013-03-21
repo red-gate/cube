@@ -239,6 +239,24 @@ suite.addBatch({
       assert.isUndefined(e.source);
     }
   },
+  
+  "an expression with two not equal filters": {
+    topic: parser.parse("sum(test.ne(i,1).ne(i,2))"),
+    "filters out events matching both": function(e) {
+      var filter = {};
+      e.filter(filter);
+      assert.deepEqual(filter, {$and: [{"d.i": {$ne: 1}},{"d.i": {$ne: 2}}]});
+    }
+  },
+  
+  "an expression with two not equal and a greater than filter": {
+    topic: parser.parse("sum(test.ne(i,5).gt(i, 3).ne(i,8))"),
+    "filters out events matching all": function(e) {
+      var filter = {};
+      e.filter(filter);
+      assert.deepEqual(filter, {"d.i": {$gt: 3}, $and: [{"d.i": {$ne: 5}},{"d.i": {$ne: 8}}]});
+    }
+  },
 
   "filters": {
     "multiple filters on the same field are combined": function() {
@@ -281,10 +299,10 @@ suite.addBatch({
       parser.parse("sum(test.le(i, 42))").filter(filter);
       assert.deepEqual(filter, {"d.i": {$lte: 42}});
     },
-    "the ne filter results in an $ne query filter": function(e) {
+    "the ne filter results in an $and $ne query filter": function(e) {
       var filter = {};
       parser.parse("sum(test.ne(i, 42))").filter(filter);
-      assert.deepEqual(filter, {"d.i": {$ne: 42}});
+      assert.deepEqual(filter, {$and: [{"d.i": {$ne: 42}}]});
     },
     "the re filter results in a $regex query filter": function(e) {
       var filter = {};

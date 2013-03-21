@@ -6,7 +6,6 @@
       filterGreaterOrEqual = filter("$gte"),
       filterLess = filter("$lt"),
       filterLessOrEqual = filter("$lte"),
-      filterNotEqual = filter("$ne"),
       filterRegularExpression = filter("$regex"),
       filterIn = filter("$in"),
       exists = {$exists: true};
@@ -28,6 +27,18 @@
         // otherwise, observe the existing equals (literal) filter
       }
     };
+  }
+
+  function filterNotEqual(o, k, v) {
+    var f = o["$and"];
+    switch (typeof f) {
+      case "undefined": o["$and"] = f = []; // continue
+      case "object":
+        var obj = {};
+        obj[k] = {"$ne": v};
+        f.push(obj);
+        break;
+    }
   }
 
   function arrayAccessor(name) {
