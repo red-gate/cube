@@ -1,33 +1,31 @@
-var mongodb = require("mongodb"),
-    assert = require("assert"),
+var database = require("../lib/cube/database"),
     util = require("util"),
     http = require("http");
 
-exports.port = 1083;
+var config = exports.config = require('./test-config');
 
 exports.batch = function(batch) {
   return {
     "": {
       topic: function() {
-        var client = new mongodb.Server("localhost", 27017);
-            db = new mongodb.Db("cube_test", client),
-            cb = this.callback;
-        db.open(function(error) {
+        var cb = this.callback;
+        database.open(config, function(error, db) {
+          if (error) {
+            return cb(error);
+          }
           var collectionsRemaining = 2;
           db.dropCollection("test_events", collectionReady);
           db.dropCollection("test_metrics", collectionReady);
           function collectionReady() {
             if (!--collectionsRemaining) {
-              cb(null, {client: client, db: db});
+              cb(null, {db: db});
             }
           }
         });
       },
       "": batch,
       teardown: function(test) {
-        if (test.client.isConnected()) {
-          test.client.close();
-        }
+        test.db.close();
       }
     }
   };
