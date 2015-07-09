@@ -28,10 +28,16 @@
         </table>
         
         <script>(function () { "use strict";
+        
+            var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
+            
+            var metricUrl = cubeBaseUrl + "metric";
+            
+            var typesUrl = cubeBaseUrl + "types"
 
             var getTotalForLastCompletePeriod = function (type, period) {
 
-                return $.getJSON("http://eventcube.red-gate.com/1.0/metric", {
+                return $.getJSON(metricUrl, {
 
                     expression: "sum(" + type + ")",
                     step: period,
@@ -93,7 +99,7 @@
                 return ignoredMessageTypes.indexOf(type) === -1;
             };
 
-            var getTypes = $.get("http://eventcube.red-gate.com/1.0/types");
+            var getTypes = $.get(typesUrl);
 
             var onGetTypesSuccess = function (types) {
 
