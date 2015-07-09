@@ -30,16 +30,10 @@
         <script>(function () { "use strict";
         
             var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
-            
-            var eventUrl = cubeBaseUrl + "event";
-            
-            var metricUrl = cubeBaseUrl + "metric";
-            
-            var typesUrl = cubeBaseUrl + "types"
 
             var getTotalForLastCompletePeriod = function (type, period) {
 
-                return $.getJSON(metricUrl, {
+                return $.getJSON(cubeBaseUrl + "metric", {
 
                     expression: "sum(" + type + ")",
                     step: period,
@@ -55,8 +49,8 @@
                     limit: 1
                 };
                 
-                return   "<a href='" + eventUrl + "?" + $.param(parameters) + "'>"
-                       + type + "</a>";
+                return "<a href='" + cubeBaseUrl + "event?" + $.param(parameters) + "'>"
+                     + type + "</a>";
             }
 
             var insertCell = function (rowIndex, columnIndex, contents) {
@@ -114,7 +108,7 @@
                 return ignoredMessageTypes.indexOf(type) === -1;
             };
 
-            var getTypes = $.get(typesUrl);
+            var getTypes = $.get(cubeBaseUrl + "types");
 
             var onGetTypesSuccess = function (types) {
 
