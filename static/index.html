@@ -1,86 +1,117 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<title>Cube</title>
-<style>
 
-@import url(style.css);
+<html>
 
-</style>
-<select id="step">
-  <option value="1e4">10 seconds</option>
-  <option value="6e4">1 minute</option>
-  <option value="3e5">5 minutes</option>
-</select>
-<script src="../d3.v3.min.js"></script>
-<script src="../cubism.v1.min.js"></script>
-<script>
+    <head>
 
-//
-var step = +cubism.option("step", 1e4),
-    offset = +cubism.option("offset", 0);
+        <title>Cube</title>
 
-//
-var context = cubism.context()
-    .step(step)
-    .size(1440)
-    .serverDelay(offset);
+        <meta charset="utf-8">
 
-//
-var cube = context.cube();
+        <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+        
+    </head>
 
-// Add top and bottom axes to display the time.
-d3.select("body").selectAll(".axis")
-    .data(["top", "bottom"])
-  .enter().append("div")
-    .attr("class", function(d) { return d + " axis"; })
-    .each(function(d) { d3.select(this).call(context.axis().ticks(12).orient(d)); });
+    <body>
 
-// Add a mouseover rule.
-d3.select("body").append("div")
-    .attr("class", "rule")
-    .call(context.rule());
+        <table>
 
-//
-d3.select("body").insert("div", ".bottom")
-    .attr("class", "group")
-    .call(function() { this.append("header").text("performance"); })
-  .selectAll(".horizon")
-    .data([
-      {title: "load", metric: cube.metric("sum(cube_compute(ms))").divide(step)},
-      {title: "median latency (ms)", metric: cube.metric("median(cube_compute(ms))")}
-    ])
-  .enter().append("div")
-    .attr("class", "horizon")
-  .call(context.horizon()
-    .title(function(d) { return d.title; })
-    .metric(function(d) { return d.metric; }));
+            <thead>
+                <tr>
+                    <th>Message type</th>
+                    <th>Total in last complete* hour</th>
+                    <th>Total in last complete* day</th>
+                </tr>
+            </thead>
 
-//
-d3.json("/1.0/types", function(types) {
-  d3.select("body").insert("div", ".bottom")
-      .attr("class", "group")
-      .call(function() { this.append("header").text("incoming events (/s)"); })
-    .selectAll(".horizon")
-      .data(types)
-    .enter().append("div")
-      .attr("class", "horizon")
-    .call(context.horizon()
-      .metric(function(d) { return cube.metric("sum(" + d + ")").divide(step / 1e3); }));
-});
+            <tbody></tbody>
+        </table>
+        
+        <script>(function () { "use strict";
 
-// On mousemove, reposition the chart values to match the rule.
-context.on("focus", function(i) {
-  d3.selectAll(".value").style("right", i == null ? null : context.size() - i + "px");
-});
+            var getTotalForLastCompletePeriod = function (type, period) {
 
-// Initialize the step menu's selection.
-d3.selectAll("#step option").property("selected", function() {
-  return this.value == step;
-});
+                return $.getJSON("http://eventcube.red-gate.com/1.0/metric", {
 
-// Update the location on step change.
-d3.select("#step").on("change", function() {
-  window.location = "?step=" + this.value + "&" + location.search.replace(/[?&]step=[^&]*(&|$)/g, "$1").substring(1);
-});
+                    expression: "sum(" + type + ")",
+                    step: period,
+                    limit: 1
+                });
+            };
 
-</script>
+            var insertCell = function (rowIndex, columnIndex, contents) {
+
+                $("tbody").children("tr")
+                          .eq(rowIndex)
+                          .children("td")
+                          .eq(columnIndex)
+                          .html(contents);
+            };
+
+            var loadMetricInCell = function (rowIndex, columnIndex, request) {
+
+                var onRequestSuccess = function (response) {
+
+                    insertCell(rowIndex, columnIndex, response[0].value);
+                };
+                
+                var onRequestFailure = function () {
+
+                    insertCell(rowIndex, columnIndex, "Failed to load metric");
+                };
+            
+                $.when(request).then(onRequestSuccess, onRequestFailure);
+            };
+
+            var loadMetricsInRow = function (rowIndex, type) {
+
+                loadMetricInCell(
+                    rowIndex, 1, getTotalForLastCompletePeriod(type, 36e5));
+
+                loadMetricInCell(
+                    rowIndex, 2, getTotalForLastCompletePeriod(type, 864e5));
+            };
+
+            var loadAllMetricsInTable = function (types) {
+
+                types.forEach(function (type, index) {
+
+                    var loadingMessage = "Loading metric...";
+
+                    $("tbody").append(
+                          "<tr><td>" + type + "</td><td>" + loadingMessage
+                        + "</td><td>" + loadingMessage + "</td></tr>");
+
+                    loadMetricsInRow(index, type);
+                });
+            };
+
+            var includeMessageType = function (type) {
+
+                var ignoredMessageTypes = ["cube_compute", "cube_request"];
+
+                return ignoredMessageTypes.indexOf(type) === -1;
+            };
+
+            var getTypes = $.get("http://eventcube.red-gate.com/1.0/types");
+
+            var onGetTypesSuccess = function (types) {
+
+                loadAllMetricsInTable(types.filter(includeMessageType));
+            };
+            
+            var onGetTypesFailure = function () {
+
+                var errorMessage = "Failed to load known message types";
+
+                $("tbody").append(
+                    "<tr><td colspan='3'>" + errorMessage + "</td></tr>");
+            };
+            
+            $.when(getTypes).then(onGetTypesSuccess, onGetTypesFailure);
+
+        }());</script>
+
+    </body>
+
+</html>
