@@ -31,6 +31,8 @@
         
             var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
             
+            var eventUrl = cubeBaseUrl + "event";
+            
             var metricUrl = cubeBaseUrl + "metric";
             
             var typesUrl = cubeBaseUrl + "types"
@@ -44,6 +46,18 @@
                     limit: 1
                 });
             };
+            
+            var getMessageTypeLink = function (type) {
+                
+                var parameters = {
+
+                    expression: type + "(payload,headers,messageType)",
+                    limit: 1
+                };
+                
+                return   "<a href='" + eventUrl + "?" + $.param(parameters) + "'>"
+                       + type + "</a>";
+            }
 
             var insertCell = function (rowIndex, columnIndex, contents) {
 
@@ -85,8 +99,9 @@
                     var loadingMessage = "Loading metric...";
 
                     $("tbody").append(
-                          "<tr><td>" + type + "</td><td>" + loadingMessage
-                        + "</td><td>" + loadingMessage + "</td></tr>");
+                          "<tr><td>" + getMessageTypeLink(type) + "</td><td>"
+                        + loadingMessage + "</td><td>"
+                        + loadingMessage + "</td></tr>");
 
                     loadMetricsInRow(index, type);
                 });
