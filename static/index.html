@@ -9,10 +9,17 @@
         <meta charset="utf-8">
 
         <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+        <script src="http://knockoutjs.com/downloads/knockout-3.3.0.js"></script>
 
     </head>
 
     <body>
+
+        <table data-bind="foreach: errors">
+            <tr>
+                <td data-bind="text: message" />
+            </tr>
+        </table>
 
         <table>
 
@@ -24,94 +31,89 @@
                 </tr>
             </thead>
 
-            <tbody></tbody>
+            <tbody data-bind="foreach: types">
+                <tr>
+                    <td data-bind="text: name" />
+                    <td data-bind="with: totalInLastCompletedHour">
+                        <a data-bind="text: value, attr: { href: url }" />
+                    </td>
+                    <td data-bind="with: totalInLastCompletedDay">
+                        <a data-bind="text: value, attr: { href: url }" />
+                    </td>
+                </tr>
+            </tbody>
+
         </table>
 
         <script>(function () { "use strict";
 
             $.support.cors = true;
 
+            var viewModel = { types:  ko.observableArray(),
+                              errors: ko.observableArray() };
+
+            $(document).ajaxError(
+                function (event, request, settings, errorThrown) {
+
+                viewModel.errors.push({ message: errorThrown });
+            });
+
+            ko.applyBindings(viewModel);
+
             var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
 
-            var getTotalMetricUrl = function (type, period) {
+            var getTotalMetricUrl = function (type, period, limit) {
 
-                var parameters = {
-
-                    expression: "sum(" + type + ")",
-                    step: period,
-                    limit: 1
-                };
+                var parameters = { expression: "sum(" + type + ")",
+                                   step:       period,
+                                   limit:      limit };
 
                 return cubeBaseUrl + "metric?" + $.param(parameters);
             };
 
-            var getCell = function (table, rowIndex, columnIndex) {
+            $.get(cubeBaseUrl + "types").then(function (types) {
 
-                return table.children("tr")
-                            .eq(rowIndex)
-                            .children("td")
-                            .eq(columnIndex);
-            };
-
-            var loadMetricInCell = function (cell, metricUrl) {
-
-                var onRequestSuccess = function (response) {
-
-                    cell.html(response[0].value);
-                };
-
-                var onRequestFailure = function () {
-
-                    cell.html("Failed to load metric");
-                };
-
-                $.get(metricUrl).then(onRequestSuccess, onRequestFailure);
-            };
-
-            var loadAllMetricsInTable = function (table, types) {
-
-                types.forEach(function (type, index) {
-
-                    var loadingMessage = "Loading metric...";
-
-                    table.append(
-                        "<tr>"
-                      + "<td>" + type + "</td>"
-                      + "<td>" + loadingMessage + "</td>"
-                      + "<td>" + loadingMessage + "</td>"
-                      + "</tr>");
-
-                    loadMetricInCell(
-                        getCell(table, index, 1),
-                        getTotalMetricUrl(type, 36e5));
-
-                    loadMetricInCell(
-                        getCell(table, index, 2),
-                        getTotalMetricUrl(type, 864e5));
-                });
-            };
-
-            var onGetTypesSuccess = function (types) {
-
-                var displayedMessageTypes = types.filter(function (type) {
+                types = types.filter(function (type) {
 
                     var ignoredMessageTypes = ["cube_compute", "cube_request"];
 
                     return ignoredMessageTypes.indexOf(type) === -1;
                 });
 
-                loadAllMetricsInTable($("tbody"), displayedMessageTypes);
-            };
+                types.forEach(function (typeName) {
 
-            var onGetTypesFailure = function (request, textStatus, errorThrown) {
+                    var typeData = {
 
-                $("tbody").append(
-                    "<tr><td colspan='3'>Failed to load known message types. "
-                  + errorThrown + "</td></tr>");
-            };
+                        name: typeName,
 
-            $.get(cubeBaseUrl + "types")
-             .then(onGetTypesSuccess, onGetTypesFailure);
+                        totalInLastCompletedHour: {
+
+                            value: ko.observable('...'),
+                            url:   getTotalMetricUrl(typeName, '36e5', 5)
+                        },
+
+                        totalInLastCompletedDay: {
+
+                            value: ko.observable('...'),
+                            url:   getTotalMetricUrl(typeName, '864e5', 5)
+                        }
+                    };
+
+                    viewModel.types.push(typeData);
+
+                    $.get(getTotalMetricUrl(typeName, '36e5', 1))
+                     .then(function (response) {
+
+                        typeData.totalInLastCompletedHour.value(response[0].value);
+                    });
+
+                    $.get(getTotalMetricUrl(typeName, '864e5', 1))
+                     .then(function (response) {
+
+                        typeData.totalInLastCompletedDay.value(response[0].value);
+                    });
+                });
+            });
 
         }());</script>
 
