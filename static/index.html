@@ -19,8 +19,8 @@
             <thead>
                 <tr>
                     <th>Message type</th>
-                    <th>Total in last complete* hour</th>
-                    <th>Total in last complete* day</th>
+                    <th>Total in last complete hour</th>
+                    <th>Total in last complete day</th>
                 </tr>
             </thead>
 
@@ -29,15 +29,13 @@
         
         <script>(function () { "use strict";
         
+            $.support.cors = true;
+        
             var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
-            
-            var metricUrl = cubeBaseUrl + "metric";
-            
-            var typesUrl = cubeBaseUrl + "types"
 
             var getTotalForLastCompletePeriod = function (type, period) {
 
-                return $.getJSON(metricUrl, {
+                return $.getJSON(cubeBaseUrl + "metric", {
 
                     expression: "sum(" + type + ")",
                     step: period,
@@ -99,22 +97,19 @@
                 return ignoredMessageTypes.indexOf(type) === -1;
             };
 
-            var getTypes = $.get(typesUrl);
-
             var onGetTypesSuccess = function (types) {
 
                 loadAllMetricsInTable(types.filter(includeMessageType));
             };
             
-            var onGetTypesFailure = function () {
-
-                var errorMessage = "Failed to load known message types";
+            var onGetTypesFailure = function (request, textStatus, errorThrown) {
 
                 $("tbody").append(
-                    "<tr><td colspan='3'>" + errorMessage + "</td></tr>");
+                    "<tr><td colspan='3'>" + errorThrown + "</td></tr>");
             };
             
-            $.when(getTypes).then(onGetTypesSuccess, onGetTypesFailure);
+            $.get(cubeBaseUrl + "types")
+             .then(onGetTypesSuccess, onGetTypesFailure);
 
         }());</script>
 
