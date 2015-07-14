@@ -1,86 +1,122 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<title>Cube</title>
-<style>
 
-@import url(style.css);
+<html>
 
-</style>
-<select id="step">
-  <option value="1e4">10 seconds</option>
-  <option value="6e4">1 minute</option>
-  <option value="3e5">5 minutes</option>
-</select>
-<script src="../d3.v3.min.js"></script>
-<script src="../cubism.v1.min.js"></script>
-<script>
+    <head>
 
-//
-var step = +cubism.option("step", 1e4),
-    offset = +cubism.option("offset", 0);
+        <title>Cube</title>
 
-//
-var context = cubism.context()
-    .step(step)
-    .size(1440)
-    .serverDelay(offset);
+        <meta charset="utf-8">
 
-//
-var cube = context.cube();
+        <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+        <script src="http://knockoutjs.com/downloads/knockout-3.3.0.js"></script>
 
-// Add top and bottom axes to display the time.
-d3.select("body").selectAll(".axis")
-    .data(["top", "bottom"])
-  .enter().append("div")
-    .attr("class", function(d) { return d + " axis"; })
-    .each(function(d) { d3.select(this).call(context.axis().ticks(12).orient(d)); });
+    </head>
 
-// Add a mouseover rule.
-d3.select("body").append("div")
-    .attr("class", "rule")
-    .call(context.rule());
+    <body>
 
-//
-d3.select("body").insert("div", ".bottom")
-    .attr("class", "group")
-    .call(function() { this.append("header").text("performance"); })
-  .selectAll(".horizon")
-    .data([
-      {title: "load", metric: cube.metric("sum(cube_compute(ms))").divide(step)},
-      {title: "median latency (ms)", metric: cube.metric("median(cube_compute(ms))")}
-    ])
-  .enter().append("div")
-    .attr("class", "horizon")
-  .call(context.horizon()
-    .title(function(d) { return d.title; })
-    .metric(function(d) { return d.metric; }));
+        <table data-bind="foreach: errors">
+            <tr>
+                <td data-bind="text: message" />
+            </tr>
+        </table>
 
-//
-d3.json("/1.0/types", function(types) {
-  d3.select("body").insert("div", ".bottom")
-      .attr("class", "group")
-      .call(function() { this.append("header").text("incoming events (/s)"); })
-    .selectAll(".horizon")
-      .data(types)
-    .enter().append("div")
-      .attr("class", "horizon")
-    .call(context.horizon()
-      .metric(function(d) { return cube.metric("sum(" + d + ")").divide(step / 1e3); }));
-});
+        <table>
 
-// On mousemove, reposition the chart values to match the rule.
-context.on("focus", function(i) {
-  d3.selectAll(".value").style("right", i == null ? null : context.size() - i + "px");
-});
+            <thead>
+                <tr>
+                    <th>Message type</th>
+                    <th>Total in last complete hour</th>
+                    <th>Total in last complete day</th>
+                </tr>
+            </thead>
 
-// Initialize the step menu's selection.
-d3.selectAll("#step option").property("selected", function() {
-  return this.value == step;
-});
+            <tbody data-bind="foreach: types">
+                <tr>
+                    <td data-bind="text: name" />
+                    <td data-bind="with: totalInLastCompletedHour">
+                        <a data-bind="text: value, attr: { href: url }" />
+                    </td>
+                    <td data-bind="with: totalInLastCompletedDay">
+                        <a data-bind="text: value, attr: { href: url }" />
+                    </td>
+                </tr>
+            </tbody>
 
-// Update the location on step change.
-d3.select("#step").on("change", function() {
-  window.location = "?step=" + this.value + "&" + location.search.replace(/[?&]step=[^&]*(&|$)/g, "$1").substring(1);
-});
+        </table>
 
-</script>
+        <script>(function () { "use strict";
+
+            $.support.cors = true;
+
+            var viewModel = { types:  ko.observableArray(),
+                              errors: ko.observableArray() };
+
+            $(document).ajaxError(
+                function (event, request, settings, errorThrown) {
+
+                viewModel.errors.push({ message: errorThrown });
+            });
+
+            ko.applyBindings(viewModel);
+
+            var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
+
+            var getTotalMetricUrl = function (type, period, limit) {
+
+                var parameters = { expression: "sum(" + type + ")",
+                                   step:       period,
+                                   limit:      limit };
+
+                return cubeBaseUrl + "metric?" + $.param(parameters);
+            };
+
+            $.get(cubeBaseUrl + "types").then(function (types) {
+
+                types = types.filter(function (type) {
+
+                    var ignoredMessageTypes = ["cube_compute", "cube_request"];
+
+                    return ignoredMessageTypes.indexOf(type) === -1;
+                });
+
+                types.forEach(function (typeName) {
+
+                    var typeData = {
+
+                        name: typeName,
+
+                        totalInLastCompletedHour: {
+
+                            value: ko.observable('...'),
+                            url:   getTotalMetricUrl(typeName, '36e5', 5)
+                        },
+
+                        totalInLastCompletedDay: {
+
+                            value: ko.observable('...'),
+                            url:   getTotalMetricUrl(typeName, '864e5', 5)
+                        }
+                    };
+
+                    viewModel.types.push(typeData);
+
+                    $.get(getTotalMetricUrl(typeName, '36e5', 1))
+                     .then(function (response) {
+
+                        typeData.totalInLastCompletedHour.value(response[0].value);
+                    });
+
+                    $.get(getTotalMetricUrl(typeName, '864e5', 1))
+                     .then(function (response) {
+
+                        typeData.totalInLastCompletedDay.value(response[0].value);
+                    });
+                });
+            });
+
+        }());</script>
+
+    </body>
+
+</html>
