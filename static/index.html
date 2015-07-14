@@ -9,7 +9,7 @@
         <meta charset="utf-8">
 
         <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
-        
+
     </head>
 
     <body>
@@ -26,88 +26,90 @@
 
             <tbody></tbody>
         </table>
-        
+
         <script>(function () { "use strict";
-        
+
             $.support.cors = true;
-        
+
             var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
 
-            var getTotalForLastCompletePeriod = function (type, period) {
+            var getTotalMetricUrl = function (type, period) {
 
-                return $.getJSON(cubeBaseUrl + "metric", {
+                var parameters = {
 
                     expression: "sum(" + type + ")",
                     step: period,
                     limit: 1
-                });
+                };
+
+                return cubeBaseUrl + "metric?" + $.param(parameters);
             };
 
-            var insertCell = function (rowIndex, columnIndex, contents) {
+            var getCell = function (table, rowIndex, columnIndex) {
 
-                $("tbody").children("tr")
-                          .eq(rowIndex)
-                          .children("td")
-                          .eq(columnIndex)
-                          .html(contents);
+                return table.children("tr")
+                            .eq(rowIndex)
+                            .children("td")
+                            .eq(columnIndex);
             };
 
-            var loadMetricInCell = function (rowIndex, columnIndex, request) {
+            var loadMetricInCell = function (cell, metricUrl) {
 
                 var onRequestSuccess = function (response) {
 
-                    insertCell(rowIndex, columnIndex, response[0].value);
+                    cell.html(response[0].value);
                 };
-                
+
                 var onRequestFailure = function () {
 
-                    insertCell(rowIndex, columnIndex, "Failed to load metric");
+                    cell.html("Failed to load metric");
                 };
-            
-                $.when(request).then(onRequestSuccess, onRequestFailure);
+
+                $.get(metricUrl).then(onRequestSuccess, onRequestFailure);
             };
 
-            var loadMetricsInRow = function (rowIndex, type) {
-
-                loadMetricInCell(
-                    rowIndex, 1, getTotalForLastCompletePeriod(type, 36e5));
-
-                loadMetricInCell(
-                    rowIndex, 2, getTotalForLastCompletePeriod(type, 864e5));
-            };
-
-            var loadAllMetricsInTable = function (types) {
+            var loadAllMetricsInTable = function (table, types) {
 
                 types.forEach(function (type, index) {
 
                     var loadingMessage = "Loading metric...";
 
-                    $("tbody").append(
-                          "<tr><td>" + type + "</td><td>" + loadingMessage
-                        + "</td><td>" + loadingMessage + "</td></tr>");
+                    table.append(
+                        "<tr>"
+                      + "<td>" + type + "</td>"
+                      + "<td>" + loadingMessage + "</td>"
+                      + "<td>" + loadingMessage + "</td>"
+                      + "</tr>");
 
-                    loadMetricsInRow(index, type);
+                    loadMetricInCell(
+                        getCell(table, index, 1),
+                        getTotalMetricUrl(type, 36e5));
+
+                    loadMetricInCell(
+                        getCell(table, index, 2),
+                        getTotalMetricUrl(type, 864e5));
                 });
-            };
-
-            var includeMessageType = function (type) {
-
-                var ignoredMessageTypes = ["cube_compute", "cube_request"];
-
-                return ignoredMessageTypes.indexOf(type) === -1;
             };
 
             var onGetTypesSuccess = function (types) {
 
-                loadAllMetricsInTable(types.filter(includeMessageType));
+                var displayedMessageTypes = types.filter(function (type) {
+
+                    var ignoredMessageTypes = ["cube_compute", "cube_request"];
+
+                    return ignoredMessageTypes.indexOf(type) === -1;
+                });
+
+                loadAllMetricsInTable($("tbody"), displayedMessageTypes);
             };
-            
+
             var onGetTypesFailure = function (request, textStatus, errorThrown) {
 
                 $("tbody").append(
-                    "<tr><td colspan='3'>" + errorThrown + "</td></tr>");
+                    "<tr><td colspan='3'>Failed to load known message types. "
+                  + errorThrown + "</td></tr>");
             };
-            
+
             $.get(cubeBaseUrl + "types")
              .then(onGetTypesSuccess, onGetTypesFailure);
 
