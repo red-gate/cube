@@ -33,7 +33,9 @@
 
             <tbody data-bind="foreach: types">
                 <tr>
-                    <td data-bind="text: name" />
+                    <td data-bind="with: type">
+                        <a data-bind="text: value, attr: { href: url }" />
+                    </td>
                     <td data-bind="with: totalInLastCompletedHour">
                         <a data-bind="text: value, attr: { href: url }" />
                     </td>
@@ -62,6 +64,15 @@
 
             var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
 
+            var getLastMessageUrl = function (type) {
+
+                var parameters = {
+                    expression: type + "(payload,headers,messageType)",
+                    limit:      1 };
+
+                return cubeBaseUrl + "event?" + $.param(parameters);
+            };
+
             var getTotalMetricUrl = function (type, period, limit) {
 
                 var parameters = { expression: "sum(" + type + ")",
@@ -84,7 +95,11 @@
 
                     var typeData = {
 
-                        name: typeName,
+                        type: {
+
+                            value: typeName,
+                            url:   getLastMessageUrl(typeName)
+                        },
 
                         totalInLastCompletedHour: {
 
