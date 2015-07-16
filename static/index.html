@@ -57,7 +57,10 @@
             $(document).ajaxError(
                 function (event, request, settings, errorThrown) {
 
-                viewModel.errors.push({ message: errorThrown });
+                viewModel.errors.push({
+                    message: "[" + event.type + ": " + request.statusText + "]"
+                           + " Error requesting " + settings.url
+                           + " " + errorThrown });
             });
 
             ko.applyBindings(viewModel);
