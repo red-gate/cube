@@ -25,7 +25,7 @@
 
             <thead>
                 <tr>
-                    <th>Message type</th>
+                    <th>Event type</th>
                     <th>Total in last complete hour</th>
                     <th>Total in last complete day</th>
                 </tr>
@@ -67,7 +67,7 @@
 
             var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
 
-            var getLastMessageUrl = function (type) {
+            var getLastEventUrl = function (type) {
 
                 var parameters = {
                     expression: type + "(payload,headers,messageType)",
@@ -89,9 +89,9 @@
 
                 types = types.filter(function (type) {
 
-                    var ignoredMessageTypes = ["cube_compute", "cube_request"];
+                    var ignoredEventTypes = ["cube_compute", "cube_request"];
 
-                    return ignoredMessageTypes.indexOf(type) === -1;
+                    return ignoredEventTypes.indexOf(type) === -1;
                 });
 
                 types.forEach(function (typeName) {
@@ -101,7 +101,7 @@
                         type: {
 
                             value: typeName,
-                            url:   getLastMessageUrl(typeName)
+                            url:   getLastEventUrl(typeName)
                         },
 
                         totalInLastCompletedHour: {
