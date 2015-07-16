@@ -73,7 +73,7 @@
                 return cubeBaseUrl + "event?" + $.param(parameters);
             };
 
-            var getTotalMetricUrl = function (type, period, limit) {
+            var getTotalMetricsUrl = function (type, period, limit) {
 
                 var parameters = { expression: "sum(" + type + ")",
                                    step:       period,
@@ -104,25 +104,25 @@
                         totalInLastCompletedHour: {
 
                             value: ko.observable('...'),
-                            url:   getTotalMetricUrl(typeName, '36e5', 5)
+                            url:   getTotalMetricsUrl(typeName, '36e5', 5)
                         },
 
                         totalInLastCompletedDay: {
 
                             value: ko.observable('...'),
-                            url:   getTotalMetricUrl(typeName, '864e5', 5)
+                            url:   getTotalMetricsUrl(typeName, '864e5', 5)
                         }
                     };
 
                     viewModel.types.push(typeData);
 
-                    $.get(getTotalMetricUrl(typeName, '36e5', 1))
+                    $.get(getTotalMetricsUrl(typeName, '36e5', 1))
                      .then(function (response) {
 
                         typeData.totalInLastCompletedHour.value(response[0].value);
                     });
 
-                    $.get(getTotalMetricUrl(typeName, '864e5', 1))
+                    $.get(getTotalMetricsUrl(typeName, '864e5', 1))
                      .then(function (response) {
 
                         typeData.totalInLastCompletedDay.value(response[0].value);
