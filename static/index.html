@@ -25,7 +25,7 @@
 
             <thead>
                 <tr>
-                    <th>Message type</th>
+                    <th>Event type</th>
                     <th>Total in last complete hour</th>
                     <th>Total in last complete day</th>
                 </tr>
@@ -33,7 +33,9 @@
 
             <tbody data-bind="foreach: types">
                 <tr>
-                    <td data-bind="text: name" />
+                    <td data-bind="with: type">
+                        <a data-bind="text: value, attr: { href: url }" />
+                    </td>
                     <td data-bind="with: totalInLastCompletedHour">
                         <a data-bind="text: value, attr: { href: url }" />
                     </td>
@@ -55,14 +57,26 @@
             $(document).ajaxError(
                 function (event, request, settings, errorThrown) {
 
-                viewModel.errors.push({ message: errorThrown });
+                viewModel.errors.push({
+                    message: "[" + event.type + ": " + request.statusText + "]"
+                           + " Error requesting " + settings.url
+                           + " " + errorThrown });
             });
 
             ko.applyBindings(viewModel);
 
             var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
 
-            var getTotalMetricUrl = function (type, period, limit) {
+            var getLastEventUrl = function (type) {
+
+                var parameters = {
+                    expression: type + "(payload,headers,messageType)",
+                    limit:      1 };
+
+                return cubeBaseUrl + "event?" + $.param(parameters);
+            };
+
+            var getTotalMetricsUrl = function (type, period, limit) {
 
                 var parameters = { expression: "sum(" + type + ")",
                                    step:       period,
@@ -75,39 +89,43 @@
 
                 types = types.filter(function (type) {
 
-                    var ignoredMessageTypes = ["cube_compute", "cube_request"];
+                    var ignoredEventTypes = ["cube_compute", "cube_request"];
 
-                    return ignoredMessageTypes.indexOf(type) === -1;
+                    return ignoredEventTypes.indexOf(type) === -1;
                 });
 
                 types.forEach(function (typeName) {
 
                     var typeData = {
 
-                        name: typeName,
+                        type: {
+
+                            value: typeName,
+                            url:   getLastEventUrl(typeName)
+                        },
 
                         totalInLastCompletedHour: {
 
                             value: ko.observable('...'),
-                            url:   getTotalMetricUrl(typeName, '36e5', 5)
+                            url:   getTotalMetricsUrl(typeName, '36e5', 5)
                         },
 
                         totalInLastCompletedDay: {
 
                             value: ko.observable('...'),
-                            url:   getTotalMetricUrl(typeName, '864e5', 5)
+                            url:   getTotalMetricsUrl(typeName, '864e5', 5)
                         }
                     };
 
                     viewModel.types.push(typeData);
 
-                    $.get(getTotalMetricUrl(typeName, '36e5', 1))
+                    $.get(getTotalMetricsUrl(typeName, '36e5', 1))
                      .then(function (response) {
 
                         typeData.totalInLastCompletedHour.value(response[0].value);
                     });
 
-                    $.get(getTotalMetricUrl(typeName, '864e5', 1))
+                    $.get(getTotalMetricsUrl(typeName, '864e5', 1))
                      .then(function (response) {
 
                         typeData.totalInLastCompletedDay.value(response[0].value);
