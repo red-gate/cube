@@ -8,6 +8,9 @@
 
         <meta charset="utf-8">
 
+        <link rel="stylesheet"
+              href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
         <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
         <script src="http://knockoutjs.com/downloads/knockout-3.3.0.js"></script>
 
@@ -15,39 +18,48 @@
 
     <body>
 
-        <table data-bind="foreach: errors">
-            <tr>
-                <td data-bind="text: message" />
-            </tr>
-        </table>
+        <div class="container">
 
-        <table>
-
-            <thead>
+            <table data-bind="foreach: errors" class="table">
                 <tr>
-                    <th>Event type</th>
-                    <th>Total in last complete hour</th>
-                    <th>Total in last complete day</th>
+                    <td data-bind="text: message" class="danger" />
                 </tr>
-            </thead>
+            </table>
 
-            <tbody data-bind="foreach: types">
-                <tr>
-                    <td data-bind="with: type">
-                        <a data-bind="text: value, attr: { href: url }" />
-                    </td>
-                    <td data-bind="with: totalInLastCompletedHour">
-                        <a data-bind="text: value, attr: { href: url }" />
-                    </td>
-                    <td data-bind="with: totalInLastCompletedDay">
-                        <a data-bind="text: value, attr: { href: url }" />
-                    </td>
-                </tr>
-            </tbody>
+            <table class="table table-striped table-bordered table-hover">
 
-        </table>
+                <thead>
+                    <tr>
+                        <th>Event type</th>
+                        <th>Total in last <abbr title="i.e. the number of events of this type that occurred in the hour before this one, from o'clock to o'clock
+e.g. if it's 5:30 then this shows the total from 4:00 to 5:00">complete*</abbr> hour</th>
+                        <th>Total in last <abbr title="i.e. the number of events of this type that occurred yesterday, from midnight to midnight">complete*</abbr> day</th>
+                    </tr>
+                </thead>
 
-        <script>(function () { "use strict";
+                <tbody data-bind="foreach: types">
+                    <tr>
+                        <td>
+                            <a data-bind="text: typeName, attr: { href: 'javascript:redGate.redirectToLastEvent(\'' + typeName + '\')' }" />
+                        </td>
+                        <td data-bind="with: totalInLastCompletedHour">
+                            <a data-bind="text: value, attr: { href: url }" />
+                        </td>
+                        <td data-bind="with: totalInLastCompletedDay">
+                            <a data-bind="text: value, attr: { href: url }" />
+                        </td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <script>
+
+        var redGate = {};
+
+        (function () { "use strict";
 
             $.support.cors = true;
 
@@ -66,15 +78,6 @@
             ko.applyBindings(viewModel);
 
             var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
-
-            var getLastEventUrl = function (type) {
-
-                var parameters = {
-                    expression: type + "(payload,headers,messageType)",
-                    limit:      1 };
-
-                return cubeBaseUrl + "event?" + $.param(parameters);
-            };
 
             var getTotalMetricsUrl = function (type, period, limit) {
 
@@ -98,11 +101,7 @@
 
                     var typeData = {
 
-                        type: {
-
-                            value: typeName,
-                            url:   getLastEventUrl(typeName)
-                        },
+                        typeName: typeName,
 
                         totalInLastCompletedHour: {
 
@@ -133,6 +132,52 @@
                 });
             });
 
+            var getEventUrl = function (parameters) {
+
+                parameters.limit = 1;
+
+                return cubeBaseUrl + "event?" + $.param(parameters);
+            };
+
+            // This function checks if the event has a payload before
+            // redirecting. Not all event types have a payload e.g. heartbeats.
+            // If we requested the last heartbeat event using the expression
+            // heartbeat(payload,headers,messageType) Square cube would try to
+            // find a heartbeat with a payload by inspecting all heartbeats ever.
+            // That would be very slow.
+            //
+            redGate.redirectToLastEvent = function (type) {
+
+                $.get(getEventUrl({ expression: type })).then(function (result) {
+
+                    var lastEventPlusPayloadFilter = {
+                        expression: type + "(payload)" };
+
+                    if (result.length !== 0) {
+
+                        lastEventPlusPayloadFilter.start = result[0].time;
+                    }
+
+                    $.get(getEventUrl(lastEventPlusPayloadFilter))
+                        .then(function (result) {
+
+                        var lastEventWithDetailsFilter;
+
+                        if (result.length > 0) {
+
+                            lastEventWithDetailsFilter = {
+                                expression: type + "(payload,headers,messageType)" };
+
+                        } else {
+
+                            lastEventWithDetailsFilter = {
+                                expression: type + "(headers,messageType)" };
+                        }
+
+                        location.href = getEventUrl(lastEventWithDetailsFilter);
+                    });
+                });
+            };
         }());</script>
 
     </body>
