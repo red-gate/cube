@@ -39,8 +39,8 @@ e.g. if it's 5:30 then this shows the total from 4:00 to 5:00">complete*</abbr> 
 
                 <tbody data-bind="foreach: types">
                     <tr>
-                        <td data-bind="with: type">
-                            <a data-bind="text: value, attr: { href: url }" />
+                        <td>
+                            <a data-bind="text: typeName, attr: { href: 'javascript:redGate.redirectToLastEvent(\'' + typeName + '\')' }" />
                         </td>
                         <td data-bind="with: totalInLastCompletedHour">
                             <a data-bind="text: value, attr: { href: url }" />
@@ -55,7 +55,11 @@ e.g. if it's 5:30 then this shows the total from 4:00 to 5:00">complete*</abbr> 
 
         </div>
 
-        <script>(function () { "use strict";
+        <script>
+
+        var redGate = {};
+
+        (function () { "use strict";
 
             $.support.cors = true;
 
@@ -74,15 +78,6 @@ e.g. if it's 5:30 then this shows the total from 4:00 to 5:00">complete*</abbr> 
             ko.applyBindings(viewModel);
 
             var cubeBaseUrl = "http://eventcube.red-gate.com/1.0/";
-
-            var getLastEventUrl = function (type) {
-
-                var parameters = {
-                    expression: type + "(payload,headers,messageType)",
-                    limit:      1 };
-
-                return cubeBaseUrl + "event?" + $.param(parameters);
-            };
 
             var getTotalMetricsUrl = function (type, period, limit) {
 
@@ -106,11 +101,7 @@ e.g. if it's 5:30 then this shows the total from 4:00 to 5:00">complete*</abbr> 
 
                     var typeData = {
 
-                        type: {
-
-                            value: typeName,
-                            url:   getLastEventUrl(typeName)
-                        },
+                        typeName: typeName,
 
                         totalInLastCompletedHour: {
 
@@ -141,6 +132,54 @@ e.g. if it's 5:30 then this shows the total from 4:00 to 5:00">complete*</abbr> 
                 });
             });
 
+            var getEventUrl = function (parameters) {
+
+                parameters.limit = 1;
+
+                return cubeBaseUrl + "event?" + $.param(parameters);
+            };
+
+            // This function checks if the event has a payload before requesting it.
+            // Not all event types have a payload - when we request the last
+            // heartbeat event using the expression heartbeat(payload,headers,messageType),
+            // Cube will slow down as it will try to search through all heartbeat
+            // messages since none of them has a payload.
+            redGate.redirectToLastEvent = function (type) {
+
+                // First obtain the time of the last event of this type
+                $.get(getEventUrl({ expression: type })).then(function (result) {
+
+                    // If there are no events at all, don't do anything
+                    if (result.length === 0) {
+                        return;
+                    }
+
+                    var tryPayload = {
+                        expression: type + "(payload,headers,messageType)",
+                        start:      result[0].time };
+
+                    // Then ask for the same event with a payload
+                    // The start time is the time of the last event, so cube won't
+                    // search through all the events in case this type of event
+                    // has no payload
+                    $.get(getEventUrl(tryPayload)).then(function (result) {
+
+                        var request;
+
+                        if (result.length > 0) {
+                            // the event has a payload, so we can safely retrieve it
+                            request = {
+                                expression: type + "(payload,headers,messageType)" };
+                        } else {
+                            // no event was returned, so the event has no payload
+                            request = {
+                                expression: type + "(headers,messageType)" };
+                        }
+
+                        location.href = getEventUrl(request);
+                    });
+                });
+            };
         }());</script>
 
     </body>
