@@ -16,6 +16,13 @@
 
         <style>
 
+            .period
+            {
+                font-size: 0.7em;
+                color: grey;
+                font-weight: normal;
+            }
+
             .hint .summary
             {
                 font-weight: bold;
@@ -52,9 +59,20 @@
                 <thead>
                     <tr>
                         <th>Event type</th>
-                        <th>Total in last <abbr title="i.e. the number of events of this type that occurred in the hour before this one, from o'clock to o'clock
-e.g. if it's 5:30 then this shows the total from 4:00 to 5:00">complete*</abbr> hour</th>
-                        <th>Total in last <abbr title="i.e. the number of events of this type that occurred yesterday, from midnight to midnight">complete*</abbr> day</th>
+                        <th data-bind="with: hourPeriod">
+                            Total in last complete hour
+                            <div class="period">
+                                <span data-bind="text: start"></span>
+                                to <span data-bind="text: end" ></span>
+                            </div>
+                        </th>
+                        <th data-bind="with: dayPeriod">
+                            Total in last complete day<br/>
+                            <div class="period">
+                                <span data-bind="text: start"></span>
+                                to <span data-bind="text: end" ></span>
+                            </div>
+                        </th>
                     </tr>
                 </thead>
 
@@ -147,7 +165,11 @@ e.g. if it's 5:30 then this shows the total from 4:00 to 5:00">complete*</abbr> 
 
             $.support.cors = true;
 
-            var viewModel = { types:  ko.observableArray(),
+            var viewModel = { hourPeriod: { start: ko.observable('...'),
+                                            end:   ko.observable('...') },
+                              dayPeriod:  { start: ko.observable('...'),
+                                            end:   ko.observable('...') },
+                              types:  ko.observableArray(),
                               errors: ko.observableArray() };
 
             $(document).ajaxError(
@@ -171,6 +193,39 @@ e.g. if it's 5:30 then this shows the total from 4:00 to 5:00">complete*</abbr> 
 
                 return cubeBaseUrl + "metric?" + $.param(parameters);
             };
+
+            var populateViewModelWithPeriod = function(stepping,
+                                                       viewModelPeriod,
+                                                       addPeriod) {
+
+                // We query a non-existing event type here as all
+                // we want is the start time of the last complete
+                // period for the corresponding stepping from square cube
+                //
+                $.get(getTotalMetricsUrl('fakeEventType', stepping, 1))
+                 .then(function (response) {
+
+                    var start = new Date(response[0].time);
+
+                    viewModelPeriod.start(start.toISOString());
+
+                    var end = new Date(start);
+
+                    addPeriod(end);
+
+                    viewModelPeriod.end(end.toISOString());
+                });
+            };
+
+            populateViewModelWithPeriod(
+                '36e5',
+                viewModel.hourPeriod,
+                function (t) { t.setHours(t.getHours() + 1); });
+
+            populateViewModelWithPeriod(
+                '864e5',
+                viewModel.dayPeriod,
+                function (t) { t.setDate(t.getDate() + 1); });
 
             $.get(cubeBaseUrl + "types").then(function (types) {
 
