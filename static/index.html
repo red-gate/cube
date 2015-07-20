@@ -14,6 +14,27 @@
         <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
         <script src="http://knockoutjs.com/downloads/knockout-3.3.0.js"></script>
 
+        <style>
+
+            .hint .summary
+            {
+                font-weight: bold;
+            }
+
+            .hint .summary::after
+            {
+                content: ":";
+            }
+
+            .hint .description
+            {
+                white-space: pre-line;
+                margin-top: 0.5em;
+                margin-left: 2em;
+            }
+
+        </style>
+
     </head>
 
     <body>
@@ -52,6 +73,69 @@ e.g. if it's 5:30 then this shows the total from 4:00 to 5:00">complete*</abbr> 
                 </tbody>
 
             </table>
+
+            <h2>Hints and tips</h2>
+
+            <div class="hint">
+                <p class="summary">Formatting of JSON results in the browser</p>
+                <p class="description">For a more convenient rendering of JSON results <a href="https://chrome.google.com/webstore/detail/chklaanhfefbnpoihckbnefhakgolnmc">consider using a browser extension such as JSONView</a>.</p>
+            </div>
+
+            <div class="hint">
+                <p class="summary">Mangling of messages to events</p>
+                <p class="description">Square cube doesn't support '.' characters in event names or in JSON property keys.
+                Hence all '.' characters in message type names are replaced with '_' characters when used as an event type in square cube.
+                '.' characters are also replaced with '_' characters in header key names and all property keys in the payload.
+                If the message payload isn't JSON then no payload will be present on the event in square cube.</p>
+            </div>
+
+            <div class="hint">
+                <p class="summary">Example event query with a filter over headers</p>
+                <a href="http://eventcube.red-gate.com/1.0/event?expression=error(payload).eq(headers.appName,'RedGate.Internal.RedGateToSalesforce.Service').eq(headers.log_level,'Error')&start=2015-07-18T00:00:00Z&stop=2015-07-20T00:00:00Z">
+                    error(payload).eq(headers.appName,'RedGate.Internal.RedGateToSalesforce.Service').eq(headers.log_level,'Error')&amp;start=2015-07-18T00:00:00Z&amp;stop=2015-07-20T00:00:00Z
+                </a>
+                <p class="description">Note that multiple filters can be applied, here we're using two .eq filters and a date range.
+                    Multiple filters are always applied using logical AND.
+                    The full list of <a href="https://github.com/square/cube/wiki/Queries#filters">filters available are described here</a>.</p>
+            </div>
+
+            <div class="hint">
+                <p class="summary">Example event query with sub-string filter over payload property</p>
+                <a href="http://eventcube.red-gate.com/1.0/event?expression=download_started(payload).re(payload.productName,'SQL')&start=2015-07-19T22:00:00Z&stop=2015-07-20T00:00:00Z">
+                    download_started(payload).re(payload.productName,'SQL')&start=2015-07-19T22:00:00Z&stop=2015-07-20T00:00:00Z
+                </a>
+                <p class="description">The .re filter is a actually a regular expression filter, but without any regex syntax it acts as a sub-string filter.</p>
+            </div>
+
+            <div class="hint">
+                <p class="summary">Example metric query</p>
+                <a href="http://eventcube.red-gate.com/1.0/metric?expression=distinct(embargoing_failure(payload.ipAddress).re(payload.message,'determine country'))&step=864e5&start=2015-07-15T00:00:00Z&stop=2015-07-20T00:00:00Z">
+                    distinct(embargoing_failure(payload.ipAddress).re(payload.message,'determine country'))&step=864e5&start=2015-07-15T00:00:00Z&stop=2015-07-20T00:00:00Z
+                </a>
+                <p class="description">This queries for the number of IP addresses where we failed to discern the country to work-out whether they're embargoed per day.
+                    The full list of <a href="https://github.com/square/cube/wiki/Queries#reduces">roll-up methods available are described here</a>.
+                    Event filters can be applied too, here we're using the .re filter again.</p>
+            </div>
+
+            <div class="hint">
+                <p class="summary">
+                    <a href="https://github.com/square/cube/wiki/Evaluator#metric_get">
+                        Metric steppings square cube supports
+                    </a>
+                </p>
+                <p class="description">1e4 (10 seconds)
+                    6e4  (1 minute)
+                    3e5  (5 minutes)
+                    36e5 (1 hour)
+                    864e5 (1 day)</p>
+            </div>
+
+            <div class="hint">
+                <p class="summary">Querying for absent properties</p>
+                <p class="description">Sadly there is no filter in square cube that allows you to include only events where a certain property is null or absent.
+                    Performing an event query which will return a property will only return those events which actually have that property, others will not be omitted.
+                    e.g. example(payload) will only return example events which actually have a payload.</p>
+            </div>
 
         </div>
 
