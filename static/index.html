@@ -127,7 +127,7 @@
 
             <div class="hint">
                 <p class="summary">Example metric query</p>
-                <a href="http://eventcube.red-gate.com/1.0/metric?expression=distinct(embargoing_failure(payload.ipAddress).re(payload.message,'determine country'))&amp;step=864e5&amp;start=2015-07-15T00:00:00Z&amp;stop=2015-07-20T00:00:00Z">
+                <a href="http://eventcube.red-gate.com/1.0/metric?expression=distinct(embargoing_failure(payload.ipAddress).re(payload.message,'determine%20country'))&amp;step=864e5&amp;start=2015-07-15T00:00:00Z&amp;stop=2015-07-20T00:00:00Z">
                     distinct(embargoing_failure(payload.ipAddress).re(payload.message,'determine country'))&amp;step=864e5&amp;start=2015-07-15T00:00:00Z&amp;stop=2015-07-20T00:00:00Z
                 </a>
                 <p class="description">This queries for the number of IP addresses where we failed to discern the country to work-out whether they're embargoed per day.
