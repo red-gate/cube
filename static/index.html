@@ -109,7 +109,7 @@
 
             <div class="hint">
                 <p class="summary">Example event query with a filter over headers</p>
-                <a href="http://eventcube.red-gate.com/1.0/event?expression=error(payload).eq(headers.appName,'RedGate.Internal.RedGateToSalesforce.Service').eq(headers.log_level,'Error')&amp;start=2015-07-18T00:00:00Z&amp;stop=2015-07-20T00:00:00Z">
+                <a href="http://eventcube.red-gate.com/1.0/event?expression=error(payload).eq(headers.appName,'RedGate.Internal.RedGateToSalesforce.Service').eq(headers.log_level,'Error')&start=2015-07-18T00:00:00Z&stop=2015-07-20T00:00:00Z">
                     error(payload).eq(headers.appName,'RedGate.Internal.RedGateToSalesforce.Service').eq(headers.log_level,'Error')&amp;start=2015-07-18T00:00:00Z&amp;stop=2015-07-20T00:00:00Z
                 </a>
                 <p class="description">Note that multiple filters can be applied, here we're using two .eq filters and a date range.
@@ -119,7 +119,7 @@
 
             <div class="hint">
                 <p class="summary">Example event query with sub-string filter over payload property</p>
-                <a href="http://eventcube.red-gate.com/1.0/event?expression=download_started(payload).re(payload.productName,'SQL')&amp;start=2015-07-19T22:00:00Z&amp;stop=2015-07-20T00:00:00Z">
+                <a href="http://eventcube.red-gate.com/1.0/event?expression=download_started(payload).re(payload.productName,'SQL')&start=2015-07-19T22:00:00Z&stop=2015-07-20T00:00:00Z">
                     download_started(payload).re(payload.productName,'SQL')&amp;start=2015-07-19T22:00:00Z&amp;stop=2015-07-20T00:00:00Z
                 </a>
                 <p class="description">The .re filter is a actually a regular expression filter, but without any regex syntax it acts as a sub-string filter.</p>
@@ -127,7 +127,7 @@
 
             <div class="hint">
                 <p class="summary">Example metric query</p>
-                <a href="http://eventcube.red-gate.com/1.0/metric?expression=distinct(embargoing_failure(payload.ipAddress).re(payload.message,'determine%20country'))&amp;step=864e5&amp;start=2015-07-15T00:00:00Z&amp;stop=2015-07-20T00:00:00Z">
+                <a href="http://eventcube.red-gate.com/1.0/metric?expression=distinct(embargoing_failure(payload.ipAddress).re(payload.message,'determine country'))&step=864e5&start=2015-07-15T00:00:00Z&stop=2015-07-20T00:00:00Z">
                     distinct(embargoing_failure(payload.ipAddress).re(payload.message,'determine country'))&amp;step=864e5&amp;start=2015-07-15T00:00:00Z&amp;stop=2015-07-20T00:00:00Z
                 </a>
                 <p class="description">This queries for the number of IP addresses where we failed to discern the country to work-out whether they're embargoed per day.
