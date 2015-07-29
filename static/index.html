@@ -245,13 +245,13 @@
                         totalInLastCompletedHour: {
 
                             value: ko.observable('...'),
-                            url:   getTotalMetricsUrl(typeName, '36e5', 10)
+                            url:   getTotalMetricsUrl(typeName, '36e5', 5)
                         },
 
                         totalInLastCompletedDay: {
 
                             value: ko.observable('...'),
-                            url:   getTotalMetricsUrl(typeName, '864e5', 10)
+                            url:   getTotalMetricsUrl(typeName, '864e5', 5)
                         }
                     };
 
@@ -271,9 +271,9 @@
                 });
             });
 
-            var getEventUrl = function (parameters) {
-
-                parameters.limit = 1;
+            var getEventsUrl = function (limit, parameters) {
+            
+                parameters.limit = limit;
 
                 return cubeBaseUrl + "event?" + $.param(parameters);
             };
@@ -287,7 +287,7 @@
             //
             redGate.redirectToLastEvent = function (type) {
 
-                $.get(getEventUrl({ expression: type })).then(function (result) {
+                $.get(getEventsUrl(1, { expression: type })).then(function (result) {
 
                     var lastEventPlusPayloadFilter = {
                         expression: type + "(payload)" };
@@ -297,7 +297,7 @@
                         lastEventPlusPayloadFilter.start = result[0].time;
                     }
 
-                    $.get(getEventUrl(lastEventPlusPayloadFilter))
+                    $.get(getEventsUrl(1, lastEventPlusPayloadFilter))
                         .then(function (result) {
 
                         var lastEventWithDetailsFilter;
@@ -313,7 +313,7 @@
                                 expression: type + "(headers,messageType)" };
                         }
 
-                        location.href = getEventUrl(lastEventWithDetailsFilter);
+                        location.href = getEventsUrl(5, lastEventWithDetailsFilter);
                     });
                 });
             };
