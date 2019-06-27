@@ -11,3 +11,43 @@ Cube is **not under active development, maintenance or support by Square** (or b
 [Infochimps](https://github.com/infochimps-labs/cube) worked on a fork of Cube which diverged slightly from the Square version. Github user [Marsup](https://github.com/marsup/cube) has been working to [merge the two versions](https://github.com/square/cube/pull/129) with some success, but there are no plans to complete the merge or publish new versions under the original Square repository or npm package.
 
 Please use the [cube-user](https://groups.google.com/forum/#!forum/cube-user) list on Google Groups for all further discussion of the Cube project.
+
+## Automatic startup
+
+The two services can be started by systemd:
+```
+[Unit]
+Description=cube-collector
+Wants=mongod.service
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+ExecStart=/usr/bin/node /data/square-cube/cube/bin/redgate_collector.js 
+User=cube
+Group=cube
+SyslogIdentifier=cube
+WorkingDirectory=/data/square-cube/cube
+
+RestartSec=5
+Restart=on-failure
+```
+```
+[Unit]
+Description=cube-evaluator
+Wants=mongod.service
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+ExecStart=/usr/bin/node /data/square-cube/cube/bin/redgate_evaluator.js 
+User=cube
+Group=cube
+SyslogIdentifier=cube
+WorkingDirectory=/data/square-cube/cube
+
+RestartSec=5
+Restart=on-failure
+```
