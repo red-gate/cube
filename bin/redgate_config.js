@@ -17,7 +17,7 @@ module.exports = (function() {
   
   var evaluatorConfig = getBaseConfig();
   
-  evaluatorConfig["http-port"] = 80;
+  evaluatorConfig["http-port"] = 1081;
   
   return { collector: collectorConfig,
            evaluator: evaluatorConfig };
